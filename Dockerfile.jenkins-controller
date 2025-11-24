@@ -1,0 +1,14 @@
+# Dockerfile.jenkins-controller
+# Start from the official image you are currently using
+FROM jenkins/jenkins:lts-jdk17
+
+# Switch to root user to install packages
+USER root
+
+# Install the necessary packages for Docker CLI (assuming Debian/Ubuntu base)
+RUN apt-get update && \
+    apt-get install -y docker.io && \
+    rm -rf /var/lib/apt/lists/*
+
+# Switch back to the jenkins user
+USER jenkins

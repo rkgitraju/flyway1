@@ -1,0 +1,15 @@
+# Dockerfile.jenkins-agent
+# Use the official JDK 17 tag
+FROM jenkins/inbound-agent:jdk17
+
+# Install the Docker CLI client inside this image
+USER root
+
+# 1. Update package lists (like 'apt update')
+RUN apt-get update && \
+    # 2. Install the necessary packages for Docker CLI
+    apt-get install -y docker.io && \
+    # 3. Clean up the cache to keep the image small
+    rm -rf /var/lib/apt/lists/*
+
+USER jenkins

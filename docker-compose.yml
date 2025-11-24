@@ -47,8 +47,10 @@ services:
       
   # --- Jenkins Controller (CI Runner) ---
   jenkins:
-    image: jenkins/jenkins:lts-jdk17
-    container_name: jenkins_local_ci
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins-controller # Must use the file that installs Docker CLI
+    container_name: jenkins_controller_final 
     privileged: true
     user: root
     ports:

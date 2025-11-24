@@ -60,6 +60,8 @@ def run_migra_and_generate_script():
         MIGRA_PATH = shutil.which('migra')
         if not MIGRA_PATH:
             raise FileNotFoundError("'migra' executable not found in PATH.")
+        
+        os.environ['MAVEN_OPTS'] = MAVEN_OPTS_FIX
 
         migra_command = [MIGRA_PATH, '--unsafe', TARGET_DB_URL, SOURCE_DB_URL]
         
@@ -145,9 +147,11 @@ def run_flyway_migration(script_path):
         )
         print("\n✅ Flyway migration completed successfully.")
         return True
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         print("\n❌ Flyway migration FAILED.")
         delete_generated_file(script_path)
+        print("--- stderr Error : ")
+        print(e.stderr) 
         return False
     finally:
         # Clear the environment variable after execution (good practice)
