@@ -7,7 +7,7 @@ from datetime import datetime
 
 # --- Configuration (UPDATE THESE VALUES) ---
 # NOTE: Ensure the user/password/port match your Docker Compose setup.
-
+# IMPORTANT: 'db1' and 'db2' are the Docker service names (hostnames)
 SOURCE_DB_URL = "postgresql://airflow:airflow@db1:5432/db1" 
 TARGET_DB_URL = "postgresql://airflow:airflow@db2:5432/db2"
 
@@ -61,16 +61,17 @@ def run_migra_and_generate_script():
         if not MIGRA_PATH:
             raise FileNotFoundError("'migra' executable not found in PATH.")
         
-        os.environ['MAVEN_OPTS'] = MAVEN_OPTS_FIX
+        # NOTE: Maven opts are only needed for the Flyway step, but keeping this here for safety.
+        # os.environ['MAVEN_OPTS'] = MAVEN_OPTS_FIX 
 
         migra_command = [MIGRA_PATH, '--unsafe', TARGET_DB_URL, SOURCE_DB_URL]
         
         result = subprocess.run(
             migra_command, 
-            stdout=subprocess.PIPE,  # Capture stdout
+            stdout=subprocess.PIPE,  # Capture stdout
             stderr=subprocess.STDOUT, # Merge stderr (UserWarning) into stdout
             text=True, 
-            # check=True is removed
+            # check=True is removed for Migra since non-zero exit codes can occur on successful diff
         )
         
         # The result.stdout now contains both regular output and the warning lines.
@@ -132,13 +133,12 @@ def run_flyway_migration(script_path):
     print(f"\nRunning Flyway migration on profile '{TARGET_PROFILE}'...")
     
     # Command to run: mvn clean compile flyway:migrate -Pdb2-local
-    # We use a single string command for reliability with shell=True on Windows
     maven_command = [
         'mvn',
         'clean',
         'compile',
         'flyway:migrate',
-        '-P' + TARGET_PROFILE,  # Combine '-P' with the actual profile name variable
+        '-P' + TARGET_PROFILE,  # Combine '-P' with the actual profile name variable
     ]
     
     try:
@@ -149,18 +149,25 @@ def run_flyway_migration(script_path):
             env=os.environ,
             check=True,
             
-            # --- CRITICAL FIX: Use PIPE/STDOUT directly, REMOVE capture_output=True ---
+            # --- CRITICAL FIX: Add Timeout ---
+            timeout=180, # Set a 3-minute timeout to prevent indefinite hangs
+            # --- Output Capture ---
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, 
             text=True, 
-            # --------------------------------------------------------------------------
         )
         print("✅ Flyway migration SUCCESSFUL.")
         return True
+    except subprocess.TimeoutExpired as e:
+        print("\n❌ Flyway migration FAILED.")
+        print("🚨 ERROR: Flyway execution timed out after 180 seconds.")
+        delete_generated_file(script_path)
+        return False
     except subprocess.CalledProcessError as e:
         print("\n❌ Flyway migration FAILED.")
         delete_generated_file(script_path)
-        print("--- stderr Error : ")
+        print("--- FULL FLYWAY OUTPUT (STDOUT+STDERR) ---")
+        # Print the output containing the detailed Java/SQL error
         print(e.stdout) 
         return False
     finally:
