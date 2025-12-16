@@ -17,6 +17,8 @@ migra --unsafe postgresql://airflow:airflow@localhost:5432/db2 postgresql://airf
 1. Dockerfile
 2. docker-compose.yml
 
+-- run compose and build 
+docker-compose up -d --build
 
 -- jenkins script for poweshell .
  #!/bin/bash

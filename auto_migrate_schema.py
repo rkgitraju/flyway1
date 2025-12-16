@@ -119,7 +119,7 @@ def run_migra_and_generate_script():
         diff_lines = []
         for line in output_lines:
             # ignore for diagnostic/warning indicators
-            if 'UserWarning:' in line or 'pkg_resources' in line or 'schemainspect' in line:
+            if 'UserWarning:' in line or 'pkg_resources' in line or 'schemainspect' in line or 'flyway_schema_history' in line:
                 continue
             
             diff_lines.append(line)
